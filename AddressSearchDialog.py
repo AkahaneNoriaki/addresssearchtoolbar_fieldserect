@@ -1,13 +1,19 @@
 # -*- coding: utf-8 -*-
-from qgis.PyQt.QtCore import Qt, QVariant
+from qgis.PyQt.QtCore import Qt, QMetaType
 from qgis.PyQt.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
     QGroupBox, QComboBox, QCheckBox, QMessageBox
 )
 
 from qgis.core import (
-    QgsExpression, QgsFeatureRequest, QgsWkbTypes
+    QgsExpression, QgsFeatureRequest, QgsWkbTypes, QgsMapLayerType
 )
+
+# QGIS 3.28 (Qt5) / QGIS 4 (Qt6) 両対応：文字列型の判定
+try:
+    _QSTRING = int(QMetaType.Type.QString)
+except AttributeError:
+    _QSTRING = 10  # QMetaType::QString
 
 
 class AddressSearchDialog(QDialog):
@@ -143,7 +149,7 @@ class AddressSearchDialog(QDialog):
 
         # 種類（ベクタ/ラスタ）
         try:
-            is_vector = layer.type() == layer.VectorLayer
+            is_vector = layer.type() == QgsMapLayerType.VectorLayer
         except Exception:
             is_vector = False
 
@@ -197,7 +203,7 @@ class AddressSearchDialog(QDialog):
 
         # ベクタだけ対象
         try:
-            if layer.type() != layer.VectorLayer:
+            if layer.type() != QgsMapLayerType.VectorLayer:
                 self.iface.messageBar().pushWarning("検索", "ベクタレイヤを選択してください。")
                 return
         except Exception:
@@ -213,7 +219,7 @@ class AddressSearchDialog(QDialog):
             return
 
         # 文字列フィールド一覧
-        str_fields = [f.name() for f in layer.fields() if f.type() == QVariant.String]
+        str_fields = [f.name() for f in layer.fields() if int(f.type()) == _QSTRING]
         if not str_fields:
             self.iface.messageBar().pushWarning("検索", "文字列フィールドが見つかりません。")
             return

@@ -9,7 +9,7 @@ from typing import List, Optional, Any
 from qgis.PyQt.QtCore import Qt, QSettings, QTimer, QUrl, QModelIndex
 from qgis.PyQt.QtGui import QIcon, QDesktopServices
 from qgis.PyQt.QtWidgets import (
-    QAction,
+    QAbstractItemView,
     QCheckBox,
     QComboBox,
     QDialog,
@@ -30,6 +30,11 @@ from qgis.PyQt.QtWidgets import (
     QTableWidgetItem,
     QHeaderView,
 )
+
+try:  # Qt6 (QGIS 4): QAction は QtGui へ移動
+    from qgis.PyQt.QtGui import QAction
+except ImportError:  # Qt5 (QGIS 3)
+    from qgis.PyQt.QtWidgets import QAction
 
 from qgis.core import (
     QgsExpression,
@@ -113,7 +118,7 @@ class AddressSearchDialog(QDialog):
 
         self.setWindowTitle("属性検索（フリーワード＋機能拡張）")
         self.setMinimumWidth(820)
-        self.setWindowFlags(self.windowFlags() | Qt.WindowMinimizeButtonHint)
+        self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMinimizeButtonHint)
 
         self._build_ui()
 
@@ -165,7 +170,7 @@ class AddressSearchDialog(QDialog):
         gl = QGridLayout(box_layer)
 
         self.combo_layer = QComboBox()
-        self.combo_layer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.combo_layer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         self.btn_unselect_layer = QPushButton("レイヤ選択解除")
         self.btn_unselect_layer.clicked.connect(self.unselect_layer)
@@ -191,12 +196,12 @@ class AddressSearchDialog(QDialog):
         # ---- advanced header (toggle button on LEFT) ----
         row_adv_header = QHBoxLayout()
         self.toggle_adv = QToolButton()
-        self.toggle_adv.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
-        self.toggle_adv.setArrowType(Qt.RightArrow)
+        self.toggle_adv.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        self.toggle_adv.setArrowType(Qt.ArrowType.RightArrow)
         self.toggle_adv.setText("機能拡張")
         self.toggle_adv.setCheckable(True)
         self.toggle_adv.setChecked(False)
-        row_adv_header.addWidget(self.toggle_adv, 0, Qt.AlignLeft)
+        row_adv_header.addWidget(self.toggle_adv, 0, Qt.AlignmentFlag.AlignLeft)
 
         self.lbl_logic_help = QLabel(
             "（説明）かつ＝両方の条件を満たす / または＝どちらか一方でも満たす"
@@ -258,10 +263,10 @@ class AddressSearchDialog(QDialog):
         self.tbl_results = QTableWidget()
         self.tbl_results.setColumnCount(0)
         self.tbl_results.setRowCount(0)
-        self.tbl_results.setSelectionBehavior(QTableWidget.SelectRows)
-        self.tbl_results.setSelectionMode(QTableWidget.SingleSelection)
+        self.tbl_results.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.tbl_results.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.tbl_results.horizontalHeader().setStretchLastSection(True)
-        self.tbl_results.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
+        self.tbl_results.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
 
         vr.addWidget(self.tbl_results)
         root.addWidget(box_res)
@@ -311,7 +316,7 @@ class AddressSearchDialog(QDialog):
 
     def _set_advanced_collapsed(self, collapsed: bool):
         self.advanced_group.setVisible(not collapsed)
-        self.toggle_adv.setArrowType(Qt.RightArrow if collapsed else Qt.DownArrow)
+        self.toggle_adv.setArrowType(Qt.ArrowType.RightArrow if collapsed else Qt.ArrowType.DownArrow)
         self.toggle_adv.setChecked(not collapsed)
 
     # ---------------- Settings ----------------
@@ -626,8 +631,8 @@ class AddressSearchDialog(QDialog):
         self.tbl_results.setRowCount(len(feats))
         for r, ft in enumerate(feats):
             fid_item = QTableWidgetItem(str(ft.id()))
-            fid_item.setData(Qt.UserRole, ft.id())
-            fid_item.setFlags(fid_item.flags() ^ Qt.ItemIsEditable)
+            fid_item.setData(Qt.ItemDataRole.UserRole, ft.id())
+            fid_item.setFlags(fid_item.flags() ^ Qt.ItemFlag.ItemIsEditable)
             self.tbl_results.setItem(r, 0, fid_item)
 
             attrs = ft.attributes()
@@ -636,7 +641,7 @@ class AddressSearchDialog(QDialog):
                 val = attrs[idx] if idx >= 0 else None
                 txt = "" if val is None else str(val)
                 it = QTableWidgetItem(txt)
-                it.setFlags(it.flags() ^ Qt.ItemIsEditable)
+                it.setFlags(it.flags() ^ Qt.ItemFlag.ItemIsEditable)
                 self.tbl_results.setItem(r, c, it)
 
         self.tbl_results.resizeColumnsToContents()
@@ -649,7 +654,7 @@ class AddressSearchDialog(QDialog):
         fid_item = self.tbl_results.item(row, 0)
         if not fid_item:
             return
-        fid = fid_item.data(Qt.UserRole)
+        fid = fid_item.data(Qt.ItemDataRole.UserRole)
         if fid is None:
             return
 
